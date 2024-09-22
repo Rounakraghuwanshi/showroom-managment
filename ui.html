@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Rental System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .car-list, .rental-info {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Car Rental System</h1>
+    <div class="container">
+        <h2>Rent a Car</h2>
+        <label for="customerName">Your Name:</label>
+        <input type="text" id="customerName" placeholder="Enter your name">
+
+        <label for="carSelect">Choose a Car:</label>
+        <select id="carSelect">
+            <option value="">Select a car</option>
+        </select>
+
+        <label for="rentalDays">Number of Rental Days:</label>
+        <input type="number" id="rentalDays" placeholder="Enter rental days">
+
+        <button id="rentButton">Rent Car</button>
+
+        <div class="rental-info" id="rentalInfo"></div>
+        
+        <h2>Return a Car</h2>
+        <label for="returnCarId">Enter Car ID:</label>
+        <input type="text" id="returnCarId" placeholder="Enter car ID">
+
+        <button id="returnButton">Return Car</button>
+
+        <div class="return-info" id="returnInfo"></div>
+    </div>
+
+    <script>
+        class Car {
+            constructor(carId, brand, model, basePricePerDay) {
+                this.carId = carId;
+                this.brand = brand;
+                this.model = model;
+                this.basePricePerDay = basePricePerDay;
+                this.isAvailable = true;
+            }
+
+            calculatePrice(days) {
+                return this.basePricePerDay * days;
+            }
+
+            rent() {
+                this.isAvailable = false;
+            }
+
+            returnCar() {
+                this.isAvailable = true;
+            }
+        }
+
+        class Customer {
+            constructor(customerId, name) {
+                this.customerId = customerId;
+                this.name = name;
+            }
+        }
+
+        class Rental {
+            constructor(car, customer, days) {
+                this.car = car;
+                this.customer = customer;
+                this.days = days;
+            }
+        }
+
+        class CarRentalSystem {
+            constructor() {
+                this.cars = [];
+                this.customers = [];
+                this.rentals = [];
+            }
+
+            addCar(car) {
+                this.cars.push(car);
+            }
+
+            addCustomer(customer) {
+                this.customers.push(customer);
+            }
+
+            rentCar(carId, customerName, rentalDays) {
+                const car = this.cars.find(car => car.carId === carId && car.isAvailable);
+                if (!car) {
+                    return "Car not available or invalid car ID.";
+                }
+                const customer = new Customer('CUS' + (this.customers.length + 1), customerName);
+                this.addCustomer(customer);
+                car.rent();
+                const rental = new Rental(car, customer, rentalDays);
+                this.rentals.push(rental);
+                return {
+                    car,
+                    customer,
+                    totalPrice: car.calculatePrice(rentalDays)
+                };
+            }
+
+            returnCar(carId) {
+                const car = this.cars.find(car => car.carId === carId && !car.isAvailable);
+                if (!car) {
+                    return "Invalid car ID or car not rented.";
+                }
+                car.returnCar();
+                this.rentals = this.rentals.filter(rental => rental.car.carId !== carId);
+                return car;
+            }
+        }
+
+        const rentalSystem = new CarRentalSystem();
+
+        const car1 = new Car("C001", "Toyota", "Camry", 60);
+        const car2 = new Car("C002", "Honda", "Accord", 70);
+        const car3 = new Car("C003", "Mahindra", "Thar", 150);
+
+        rentalSystem.addCar(car1);
+        rentalSystem.addCar(car2);
+        rentalSystem.addCar(car3);
+
+        const carSelect = document.getElementById('carSelect');
+        rentalSystem.cars.forEach(car => {
+            if (car.isAvailable) {
+                const option = document.createElement('option');
+                option.value = car.carId;
+                option.text = `${car.brand} ${car.model} (${car.carId})`;
+                carSelect.appendChild(option);
+            }
+        });
+
+        document.getElementById('rentButton').addEventListener('click', () => {
+            const customerName = document.getElementById('customerName').value;
+            const carId = document.getElementById('carSelect').value;
+            const rentalDays = document.getElementById('rentalDays').value;
+
+            if (!customerName || !carId || !rentalDays) {
+                alert("Please fill all the fields.");
+                return;
+            }
+
+            const result = rentalSystem.rentCar(carId, customerName, rentalDays);
+            if (typeof result === "string") {
+                document.getElementById('rentalInfo').innerHTML = `<p>${result}</p>`;
+            } else {
+                document.getElementById('rentalInfo').innerHTML = `
+                    <h3>Rental Information</h3>
+                    <p>Customer ID: ${result.customer.customerId}</p>
+                    <p>Customer Name: ${result.customer.name}</p>
+                    <p>Car: ${result.car.brand} ${result.car.model}</p>
+                    <p>Rental Days: ${rentalDays}</p>
+                    <p>Total Price: $${result.totalPrice.toFixed(2)}</p>
+                `;
+                carSelect.innerHTML = "";
+                rentalSystem.cars.forEach(car => {
+                    if (car.isAvailable) {
+                        const option = document.createElement('option');
+                        option.value = car.carId;
+                        option.text = `${car.brand} ${car.model} (${car.carId})`;
+                        carSelect.appendChild(option);
+                    }
+                });
+            }
+        });
+
+        document.getElementById('returnButton').addEventListener('click', () => {
+            const carId = document.getElementById('returnCarId').value;
+            const result = rentalSystem.returnCar(carId);
+            if (typeof result === "string") {
+                document.getElementById('returnInfo').innerHTML = `<p>${result}</p>`;
+            } else {
+                document.getElementById('returnInfo').innerHTML = `<p>Car ${result.carId} returned successfully.</p>`;
+                carSelect.innerHTML = "";
+                rentalSystem.cars.forEach(car => {
+                    if (car.isAvailable) {
+                        const option = document.createElement('option');
+                        option.value = car.carId;
+                        option.text = `${car.brand} ${car.model} (${car.carId})`;
+                        carSelect.appendChild(option);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
